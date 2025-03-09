@@ -230,9 +230,9 @@ def load_user(username):
 
 if __name__ == '__main__':
     #Para que funcione con LOCALHOST
-    # socketio.run(app, debug=True)
+    socketio.run(app, debug=True)
     #Para que funcione con HAMACHI
-    socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+    # socketio.run(app, host='0.0.0.0', port=5000, debug=True)
 
 
 # Añadir esta ruta para obtener miembros de la sala
