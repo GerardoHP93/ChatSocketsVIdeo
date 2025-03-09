@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Room - Chat App</title>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container navbar-content">
+            <h1>Crear Nueva Sala</h1>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="card">
+            {% if message %}
+                <div class="message {% if 'Failed' in message %}error{% else %}success{% endif %}">
+                    {{ message }}
+                </div>
+            {% endif %}
+
+            <form method="post">
+                <div class="form-group">
+                    <label for="room_name">Nombre de sala</label>
+                    <input type="text" id="room_name" name="room_name" class="form-control" required>
+                    <small class="form-text">Elige un nombre único para tu sala</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="members">Miembros</label>
+                    <input type="text" id="members" name="members" class="form-control" required>
+                    <small class="form-text">Introduzca los nombres de usuario separados por comas (por ejemplo, usuario1, usuario2, usuario3)</small>
+                </div>
+
+                <div class="button-group">
+                    <button type="submit" class="btn">Crear sala</button>
+                    <a href="{{ url_for('home') }}" class="btn btn-secondary">Cancelar</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

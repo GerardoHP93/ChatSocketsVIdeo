@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat App</title>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    {% if current_user.is_authenticated %}
+    <div class="chat-layout">
+        <!-- Sidebar -->
+        <div class="chat-sidebar">
+            <div class="sidebar-header">
+                <span class="user-info">{{ current_user.username }}</span>
+                <a href="{{ url_for('logout') }}" class="btn btn-secondary">Cerrar Sesión</a>
+            </div>
+            <a href="{{ url_for('create_room') }}" class="btn create-room-btn">Crear Sala</a>
+            <div class="rooms-list-container">
+                <ul class="room-list">
+                    {% for room in rooms %}
+                    <li class="room-item {% if active_room and active_room._id == room._id.room_id %}active{% endif %}"
+                        onclick="window.location.href='/rooms/{{ room._id.room_id }}/'">
+                        {{ room.room_name }}
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+
+        <!-- Chat principal -->
+        <div class="chat-main">
+            {% if active_room %}
+            <div class="chat-header">
+                <h2>{{ active_room.name }}</h2>
+                {% if is_room_admin %}
+                <a href="{{ url_for('edit_room', room_id=active_room._id) }}" class="btn">Editar Sala</a>
+                <!-- BOTON PARA SALIR DE LA SALA -->
+                {% else %}
+                <a href="{{ url_for('leave_room_route', room_id=active_room._id) }}" class="btn btn-secondary">Abandonar Sala</a>
+                {% endif %}
+            </div>
+            <div class="chat-messages">
+                <!-- Botón para cargar mensajes anteriores -->
+                <button type="button" id="load_older_messages_btn" class="load-more-btn">Cargar mensajes anteriores</button>
+<div id="messages" class="chat-messages">
+    {% for message in messages %}
+    <div class="message-item {% if message.sender == current_user.username %}my-message{% else %}other-message{% endif %}">
+        <div class="message-header">
+            <span class="message-sender">{{ message.sender }}</span>
+            <span class="message-time">{{ message.created_at }}</span>
+        </div>
+        <div class="message-text">{{ message.text }}</div>
+    </div>
+    {% endfor %}
+</div>
+
+
+            </div>
+            <div class="chat-input-container">
+                <form id="message_input_form" class="chat-input-form">
+                    <input type="text" id="message_input" class="chat-input form-control" placeholder="Type your message...">
+                    <button type="submit" class="btn">Enviar</button>
+                </form>
+            </div>
+            {% else %}
+            <div class="empty-chat-message">
+                <h2>Bienvenido a la aplicación Chat</h2>
+                <p>Seleccione una sala de chat o cree una nueva para comenzar a enviar mensajes.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% else %}
+    <div class="auth-container">
+        <div class="card">
+            <h2>Bienvenido a la aplicación Chat</h2>
+            <p>Por favor inicia sesión o regístrate para continuar</p>
+            <div class="button-group">
+                <a href="{{ url_for('login') }}" class="btn">Iniciar Sesión</a>
+                    <a href="{{ url_for('signup') }}" class="btn btn-secondary">Crear cuenta</a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if active_room %}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+    <script>
+        //PARA QUE FUNCIONE CON HAMACHI
+        //const socket = io.connect("http://25.65.114.71:5000");
+        //Para que funcione EN LOCALHOST
+        const socket = io.connect("http://127.0.0.1:5000");
+
+        socket.on('connect', function () {
+            socket.emit('join_room', {
+                username: "{{ current_user.username }}",
+                room: "{{ active_room._id }}"
+            });
+
+            let message_input = document.getElementById('message_input');
+
+            document.getElementById('message_input_form').onsubmit = function (e) {
+                e.preventDefault();
+                let message = message_input.value.trim();
+                if (message.length) {
+                    socket.emit('send_message', {
+                        username: "{{ current_user.username }}",
+                        room: "{{ active_room._id }}",
+                        message: message
+                    });
+                }
+                message_input.value = '';
+                message_input.focus();
+            }
+        });
+
+        let page = 0;
+
+        // Función para cargar mensajes anteriores
+        document.getElementById("load_older_messages_btn").onclick = (e) => {
+            page += 1;
+            fetch("/rooms/{{ active_room._id }}/messages?page=" + page, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            }).then(response => {
+                response.json().then(messages => {
+                    messages.reverse().forEach(message => prepend_message(message.text, message.sender, message.created_at));
+                });
+            });
+        };
+
+        function prepend_message(message, username, created_at) {
+            const newNode = document.createElement('div');
+            newNode.className = 'message-item';
+            newNode.innerHTML = `
+                <div class="message-header">
+                    <span class="message-sender">${username}</span>
+                    <span class="message-time">[${created_at}]</span>
+                </div>
+                <div class="message-text">${message}</div>
+            `;
+            const messages_div = document.getElementById('messages');
+            messages_div.insertBefore(newNode, messages_div.firstChild);
+        }
+
+    socket.on('receive_message', function (data) {
+        const newNode = document.createElement('div');
+
+        // Verificar si el mensaje es del usuario actual
+        let isMyMessage = data.username === "{{ current_user.username }}" ? "my-message" : "other-message";
+
+        newNode.className = `message-item ${isMyMessage}`;
+        newNode.innerHTML = `
+            <div class="message-header">
+                <span class="message-sender">${data.username}</span>
+                <span class="message-time">[${data.created_at}]</span>
+            </div>
+            <div class="message-text">${data.message}</div>
+        `;
+
+        document.getElementById('messages').appendChild(newNode);
+        newNode.scrollIntoView({ behavior: "smooth" });
+    })
+
+
+        socket.on('join_room_announcement', function (data) {
+            if (data.username !== "{{ current_user.username }}") {
+                const newNode = document.createElement('div');
+                newNode.className = 'message-item';
+                newNode.innerHTML = `<div class="message-text"><b>${data.username}</b> ha entrado a la sala</div>`;
+                document.getElementById('messages').appendChild(newNode);
+            }
+        });
+
+        socket.on('leave_room_announcement', function (data) {
+            const newNode = document.createElement('div');
+            newNode.className = 'message-item';
+            newNode.innerHTML = `<div class="message-text"><b>${data.username}</b> ha abandonado la sala</div>`;
+            document.getElementById('messages').appendChild(newNode);
+        });
+    </script>
+    {% endif %}
+</body>
+</html>

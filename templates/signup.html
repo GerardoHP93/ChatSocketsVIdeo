@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up - Chat App</title>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="auth-container">
+        <div class="card">
+            <h1>Crear Cuenta</h1>
+            {% if message %}
+                <div class="message {% if 'exists' in message %}error{% else %}success{% endif %}">
+                    {{ message }}
+                </div>
+            {% endif %}
+
+            <form method="post" action="{{ url_for('signup') }}">
+                <div class="form-group">
+                    <label for="username">Nombre de usuario</label>
+                    <input type="text" id="username" name="username" class="form-control" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Contraseña</label>
+                    <input type="password" id="password" name="password" class="form-control" required>
+                </div>
+
+                <div class="button-group">
+                    <button type="submit" class="btn">Crear Cuenta</button>
+                    <a href="{{ url_for('home') }}" class="btn btn-secondary">Regresar al Inicio</a>
+                </div>
+
+                <p class="auth-footer">
+                    ¿Ya tienes una cuenta? <a href="{{ url_for('login') }}">Iniciar Sesión</a>
+                </p>
+            </form>
+        </div>
+    </div>
+</body>
+</html>

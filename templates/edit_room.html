@@ -1,0 +1,195 @@
+<!-- edit_room.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Room - Chat App</title>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container navbar-content">
+            <h1>Editar Sala</h1>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="card">
+            {% if message %}
+            <div class="message success">
+                {{ message }}
+            </div>
+            {% endif %}
+
+            <!-- Room Name Section -->
+            <div class="form-group">
+                <label for="room_name">Nombre de sala</label>
+                <input type="text" id="room_name" class="form-control" value="{{ room.name }}">
+            </div>
+
+            <!-- Current Members Section -->
+            <div class="member-list">
+                <h3>Miembros actuales</h3>
+                {% for member in room_members %}
+                <div class="member-item" id="member-{{ member._id.username }}">
+                    <span class="member-name">{{ member._id.username }}</span>
+                    {% if member.is_room_admin %}
+                    <span class="admin-badge">Administrador</span>
+                    {% else %}
+                    <button class="btn btn-secondary" onclick="confirmDelete('{{ member._id.username }}')">Remover</button>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Add Members Section -->
+            <div class="add-member-section">
+                <div id="add-member-form" class="hidden">
+                    <div class="form-group">
+                        <h3>Añadir Nuevos Miembros</h3>
+                        <label>Introduzca los nombres de usuario separados por comas</label>
+                        <input type="text" id="new_members" class="form-control" placeholder="username1, username2, ...">
+                        <button onclick="validateAndAddMembers()" class="btn">Añadir</button>
+                    </iv>
+                    <div id="validation-message"></div>
+                    <div id="loading" class="loading hidden"></div>
+                </div>
+            </div>
+
+            <!-- Save Changes Button -->
+            <div class="button-group">
+                <button onclick="saveChanges()" class="btn">Guardar cambios</button>
+                <a href="{{ url_for('view_room', room_id=room._id) }}" class="btn btn-secondary">Cancelar</a>
+            </div>
+        </div>
+
+        <!-- Confirmation Modal -->
+        <div id="confirmModal" class="modal">
+            <div class="modal-content">
+                <h4>Confirmación de remover miembro</h4>
+                <p>¿Está seguro de que desea eliminar a este miembro de la sala?</p>
+                <div class="button-group">
+                    <button onclick="deleteMember()" class="btn">Sí, remover</button>
+                    <button onclick="closeModal()" class="btn btn-secondary">Cancelar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let membersToRemove = [];
+        let currentMemberToDelete = null;
+
+        function toggleAddMemberForm() {
+            const form = document.getElementById('add-member-form');
+            form.classList.toggle('hidden');
+        }
+
+        function confirmDelete(username) {
+            currentMemberToDelete = username;
+            document.getElementById('confirmModal').style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('confirmModal').style.display = 'none';
+            currentMemberToDelete = null;
+        }
+
+        function deleteMember() {
+            if (currentMemberToDelete) {
+                membersToRemove.push(currentMemberToDelete);
+                const memberElement = document.getElementById(`member-${currentMemberToDelete}`);
+                memberElement.style.backgroundColor = '#ffebee';
+                closeModal();
+            }
+        }
+
+        async function validateAndAddMembers() {
+            const newMembersInput = document.getElementById('new_members');
+            const membersList = newMembersInput.value.split(',').map(m => m.trim()).filter(m => m);
+            const validationMessage = document.getElementById('validation-message');
+            const loading = document.getElementById('loading');
+
+            if (membersList.length === 0) {
+                validationMessage.innerHTML = '<span class="error-message">Please enter at least one username</span>';
+                return;
+            }
+
+            // Show loading indicator
+            loading.classList.remove('hidden');
+            validationMessage.innerHTML = '';
+
+            try {
+                const response = await fetch('/check-users', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ usernames: membersList })
+                });
+
+                const data = await response.json();
+
+                if (data.valid) {
+                    // Add valid users to the list
+                    data.valid_users.forEach(username => {
+                        if (!document.getElementById(`member-${username}`)) {
+                            const memberItem = document.createElement('div');
+                            memberItem.className = 'member-item new-member';
+                            memberItem.innerHTML = `
+                                <span class="member-name">${username}</span>
+                                <button class="delete-button" onclick="this.parentElement.remove()">Remove</button>
+                            `;
+                            document.querySelector('.member-list').appendChild(memberItem);
+                        }
+                    });
+                    newMembersInput.value = '';
+                    toggleAddMemberForm();
+                    validationMessage.innerHTML = '<span class="success-message">Members added successfully</span>';
+                } else {
+                    validationMessage.innerHTML = `<span class="error-message">${data.message}</span>`;
+                }
+            } catch (error) {
+                validationMessage.innerHTML = '<span class="error-message">Error validating users. Please try again.</span>';
+            } finally {
+                loading.classList.add('hidden');
+            }
+        }
+
+        function saveChanges() {
+            const roomName = document.getElementById('room_name').value;
+
+            // Get current members (excluding removed ones)
+            const currentMembers = Array.from(document.querySelectorAll('.member-item'))
+                .filter(item => !membersToRemove.includes(item.id.replace('member-', '')))
+                .map(item => item.querySelector('.member-name').textContent.trim());
+
+            // Get new members
+            const newMembers = Array.from(document.querySelectorAll('.new-member'))
+                .map(item => item.querySelector('.member-name').textContent.trim());
+
+            // Combine all members
+            const allMembers = [...new Set([...currentMembers, ...newMembers])].join(',');
+
+            // Create and submit the form
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.innerHTML = `
+                <input type="hidden" name="room_name" value="${roomName}">
+                <input type="hidden" name="members" value="${allMembers}">
+            `;
+            document.body.appendChild(form);
+            form.submit();
+        }
+
+        // Close modal if clicking outside
+        window.onclick = function(event) {
+            if (event.target == document.getElementById('confirmModal')) {
+                closeModal();
+            }
+        }
+    </script>
+</body>
+</html>
