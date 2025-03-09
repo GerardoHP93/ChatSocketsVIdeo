@@ -40,6 +40,11 @@
                 {% else %}
                 <a href="{{ url_for('leave_room_route', room_id=active_room._id) }}" class="btn btn-secondary">Abandonar Sala</a>
                 {% endif %}
+
+                {% if active_room %}
+                <button id="video-call-btn" class="btn btn-primary">Iniciar Videollamada</button>
+                {% endif %}
+
             </div>
             <div class="chat-messages">
                 <!-- Botón para cargar mensajes anteriores -->
@@ -85,15 +90,40 @@
     </div>
     {% endif %}
 
+    <div id="video-modal" class="video-modal">
+        <div class="video-container">
+            <div class="video-header">
+                <h3>Videollamada: <span id="video-room-name">{{active_room.name if active_room else ''}}</span></h3>
+                <button id="close-video-btn" class="btn btn-secondary">Cerrar</button>
+            </div>
+            <div class="video-grid">
+                <div class="video-item">
+                    <video id="local-video" autoplay muted playsinline></video>
+                    <div class="video-label">Tú</div>
+                </div>
+                <div id="remote-videos"></div>
+            </div>
+            <div class="video-controls">
+                <button id="toggle-audio-btn" class="btn">Silenciar</button>
+                <button id="toggle-video-btn" class="btn">Apagar Cámara</button>
+            </div>
+        </div>
+    </div>
+    
+
+
     {% if active_room %}
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+
     <script>
         //PARA QUE FUNCIONE CON HAMACHI
-        //const socket = io.connect("http://25.65.114.71:5000");
+        const socket = io.connect("http://25.65.114.71:5000");
         //Para que funcione EN LOCALHOST
-        const socket = io.connect("http://127.0.0.1:5000");
+        // const socket = io.connect("http://127.0.0.1:5000");
 
         socket.on('connect', function () {
+            console.log("Socket conectado correctamente.");
+
             socket.emit('join_room', {
                 username: "{{ current_user.username }}",
                 room: "{{ active_room._id }}"
@@ -183,6 +213,21 @@
             document.getElementById('messages').appendChild(newNode);
         });
     </script>
+
+    <!-- Cargar WebRTC después de definir socket -->
+    <script src="{{ url_for('static', filename='webrtc.js') }}"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            if (typeof WebRTCClient !== "undefined") {
+                console.log("Inicializando WebRTCClient...");
+                const webrtcClient = new WebRTCClient(socket, "{{ current_user.username }}", "{{ active_room._id }}");
+            } else {
+                console.error("WebRTCClient no está definido");
+            }
+        });
+    </script>
+
+
     {% endif %}
 </body>
 </html>

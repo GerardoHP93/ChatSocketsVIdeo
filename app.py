@@ -154,11 +154,11 @@ def view_room(room_id):
         messages = get_messages(room_id)
         is_admin = is_room_admin(room_id, current_user.username)
         return render_template('index.html',
-                             rooms=rooms,
-                             active_room=room,
-                             room_members=room_members,
-                             messages=messages,
-                             is_room_admin=is_admin)
+                            rooms=rooms,
+                            active_room=room,
+                            room_members=room_members,
+                            messages=messages,
+                            is_room_admin=is_admin)
     else:
         return "Room not found", 404
 
@@ -218,6 +218,9 @@ def handle_leave_room_event(data):
     app.logger.info("{} ha abandonado la sala {}".format(data['username'], data['room']))
     leave_room(data['room'])
     socketio.emit('leave_room_announcement', data, room=data['room'])
+    
+    socketio.emit('user_disconnected', {"username": data['username']}, room=f"video_{data['room']}")
+
 
 
 @login_manager.user_loader
@@ -227,6 +230,53 @@ def load_user(username):
 
 if __name__ == '__main__':
     #Para que funcione con LOCALHOST
-    socketio.run(app, debug=True)
+    # socketio.run(app, debug=True)
     #Para que funcione con HAMACHI
-    #socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+    socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+
+
+# Añadir esta ruta para obtener miembros de la sala
+@app.route('/rooms/<room_id>/members')
+@login_required
+def get_room_members_route(room_id):
+    room = get_room(room_id)
+    if room and is_room_member(room_id, current_user.username):
+        members = get_room_members(room_id)
+        formatted_members = []
+        for member in members:
+            formatted_members.append({"username": member['_id']['username']})
+        return jsonify(formatted_members)
+    else:
+        return "Room not found", 404
+
+# Añadir estos eventos de socket para las videollamadas
+@socketio.on('join_video_room')
+def handle_join_video_room(data):
+    app.logger.info(f"{data['username']} ha entrado a la videollamada en la sala {data['room']}")
+    join_room(f"video_{data['room']}")
+    socketio.emit('join_video_room', data, room=f"video_{data['room']}")
+
+@socketio.on('leave_video_room')
+def handle_leave_video_room(data):
+    app.logger.info(f"{data['username']} ha abandonado la videollamada en la sala {data['room']}")
+    leave_room(f"video_{data['room']}")
+    socketio.emit('user_disconnected', {"username": data['username']}, room=f"video_{data['room']}")
+
+@socketio.on('video_offer')
+def handle_video_offer(data):
+    app.logger.info(f"Oferta de videollamada de {data['caller']} para {data['target']}")
+    socketio.emit('video_offer', data)
+
+@socketio.on('video_answer')
+def handle_video_answer(data):
+    app.logger.info(f"Respuesta de videollamada de {data['target']} para {data['caller']}")
+    socketio.emit('video_answer', data)
+
+@socketio.on('video_ice_candidate')
+def handle_video_ice_candidate(data):
+    socketio.emit('video_ice_candidate', data)
+
+@socketio.on('video_reject')
+def handle_video_reject(data):
+    app.logger.info(f"{data['target']} rechazó la videollamada de {data['caller']}")
+    socketio.emit('video_call_rejected', data)
