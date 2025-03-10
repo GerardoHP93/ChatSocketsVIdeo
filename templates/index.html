@@ -6,7 +6,10 @@
     <title>Chat App</title>
     <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
 </head>
+
 <body>
     {% if current_user.is_authenticated %}
     <div class="chat-layout">
@@ -40,6 +43,10 @@
                 {% else %}
                 <a href="{{ url_for('leave_room_route', room_id=active_room._id) }}" class="btn btn-secondary">Abandonar Sala</a>
                 {% endif %}
+
+                <button type="button" class="video-call-btn" onclick="startVideoCall()">
+                    <i class="fas fa-video"></i> Videollamada
+                </button>
             </div>
             <div class="chat-messages">
                 <!-- Botón para cargar mensajes anteriores -->
@@ -85,13 +92,70 @@
     </div>
     {% endif %}
 
+    <div id="video-container">
+        <div class="video-grid">
+            <div class="local-video-container">
+                <video id="local-video" autoplay playsinline></video>
+                <div id="local-video-overlay">Cámara apagada</div>
+                <div class="video-username">Tú</div>
+            </div>
+            <div id="remote-videos" class="remote-videos">
+                <!-- Los videos remotos se insertarán aquí -->
+            </div>
+        </div>
+        <div class="call-controls">
+            <button id="mute-btn" class="call-btn mute-btn" onclick="toggleMute()">Silenciar</button>
+            <button id="video-btn" class="call-btn video-btn" onclick="toggleVideo()">Apagar Cámara</button>
+            <button class="call-btn end-call-btn" onclick="endCall()">Finalizar Llamada</button>
+        </div>
+    </div>
+    
+    <!-- Modal de confirmación de videollamada -->
+    <div id="call-confirmation">
+        <div class="confirmation-dialog">
+            <h3 class="confirmation-title">Iniciar Videollamada</h3>
+            <p class="confirmation-text">¿Deseas iniciar una videollamada en esta sala?</p>
+            <div class="confirmation-buttons">
+                <button class="confirm-btn accept" onclick="confirmVideoCall()">Iniciar</button>
+                <button class="confirm-btn cancel" onclick="cancelVideoCall()">Cancelar</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Notificación de llamada entrante -->
+    <div id="incoming-call">
+        <div class="incoming-call-dialog">
+            <h3 class="incoming-call-title">Llamada entrante</h3>
+            <p class="incoming-call-text"><span id="caller-name"></span> está iniciando una videollamada</p>
+            <div class="incoming-call-buttons">
+                <button class="confirm-btn accept" onclick="acceptCall()">Aceptar</button>
+                <button class="confirm-btn cancel" onclick="rejectCall()">Rechazar</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Elemento para mensaje de error -->
+    <div id="call-error"></div>
+    
+    <!-- Audio para tono de llamada -->
+    <audio id="ringtone" loop>
+        <source src="{{ url_for('static', filename='ringtone.mp3') }}" type="audio/mpeg">
+    </audio>
+    
+    <!-- Datos ocultos para JavaScript -->
+    <input type="hidden" id="room-id" value="{% if active_room %}{{ active_room._id }}{% endif %}">
+    <input type="hidden" id="current-username" value="{{ current_user.username }}">
+    
+
     {% if active_room %}
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+    <script src="{{ url_for('static', filename='webrtc.js') }}"></script>
+    
     <script>
         //PARA QUE FUNCIONE CON HAMACHI
         //const socket = io.connect("http://25.65.114.71:5000");
         //Para que funcione EN LOCALHOST
-        const socket = io.connect("http://127.0.0.1:5000");
+        const socket = io.connect("https://0922-2806-10be-2-4ba-a171-ab2c-605a-a04a.ngrok-free.app");
 
         socket.on('connect', function () {
             socket.emit('join_room', {

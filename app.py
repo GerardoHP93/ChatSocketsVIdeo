@@ -5,6 +5,8 @@ from flask_login import current_user, login_user, login_required, logout_user, L
 from flask_socketio import SocketIO, join_room, leave_room
 from pymongo.errors import DuplicateKeyError
 from passlib.hash import pbkdf2_sha256  # Cambio aquí
+from flask_cors import CORS
+
 
 from db import get_user, save_user, get_rooms_for_user, get_room, is_room_member, get_room_members, add_room_members, \
     remove_room_members, update_room, is_room_admin, save_room, save_message, get_messages, leave_room_db
@@ -224,9 +226,116 @@ def handle_leave_room_event(data):
 def load_user(username):
     return get_user(username)
 
+@socketio.on('ready_to_call')
+def handle_ready_to_call(data):
+    app.logger.info("{} está listo para videollamada en la sala {}".format(data['username'], data['room']))
+    # Guardar el peer_id como ID de socket para enviar mensajes directos
+    peer_id = data['peerId']
+    room = data['room']
+    username = data['username']
+    
+    # Hacer que el cliente se una a su propio canal (usando el peerId como nombre del canal)
+    join_room(peer_id)
+    # También unirse a la sala de chat
+    join_room(room)
+    
+    # Emitir a todos en la sala excepto al emisor que un usuario está listo
+    socketio.emit('user_ready_to_call', {
+        'username': username,
+        'peerId': peer_id,
+        'room': room
+    }, room=room, include_self=False)
+    
+    socketio.emit('user_ready_to_call', {
+        'username': username,
+        'peerId': peer_id,
+        'room': room
+    }, room=room, include_self=False)
+    
+    
+@socketio.on('video_offer')
+def handle_video_offer(data):
+    app.logger.info("Oferta de videollamada de {} para {}".format(data['peerId'], data['targetPeerId']))
+    # Reenviar la oferta al destinatario específico
+    target_peer_id = data['targetPeerId']
+    
+    socketio.emit('video_offer', {
+        'peerId': data['peerId'],
+        'sdp': data['sdp'],
+        'room': data['room']
+    }, to=target_peer_id)  # Enviar solo al destinatario específico
+
+@socketio.on('video_answer')
+def handle_video_answer(data):
+    app.logger.info("Respuesta de videollamada de {} para {}".format(data['peerId'], data['targetPeerId']))
+    # Reenviar la respuesta al destinatario específico
+    target_peer_id = data['targetPeerId']
+    
+    socketio.emit('video_answer', {
+        'peerId': data['peerId'],
+        'sdp': data['sdp'],
+        'room': data['room']
+    }, to=target_peer_id)  # Enviar solo al destinatario específico
+
+# Actualizar función en app.py para manejar emisión de candidatos ICE correctamente
+
+@socketio.on('ice_candidate')
+def handle_ice_candidate(data):
+    app.logger.info("ICE candidate de {} para {}".format(data.get('peerId'), data.get('targetPeerId', 'todos')))
+    # Reenviar el candidato ICE al destinatario específico si existe
+    if 'targetPeerId' in data:
+        target_peer_id = data['targetPeerId']
+        socketio.emit('ice_candidate', {
+            'peerId': data['peerId'],
+            'candidate': data['candidate'],
+            'room': data['room']
+        }, to=target_peer_id)
+    else:
+        # Si no hay targetPeerId, emitirlo a toda la sala
+        room = data['room']
+        socketio.emit('ice_candidate', {
+            'peerId': data['peerId'],
+            'candidate': data['candidate'],
+            'room': room
+        }, room=room, include_self=False)
+
+@socketio.on('leave_call')
+def handle_leave_call(data):
+    app.logger.info("{} ha dejado la videollamada en sala {}".format(data['peerId'], data['room']))
+    room = data['room']
+    
+    socketio.emit('user_left_call', {
+        'peerId': data['peerId'],
+        'room': room
+    }, room=room, include_self=False)
+
+@socketio.on('video_call_started')
+def handle_video_call_started(data):
+    app.logger.info("{} ha iniciado una videollamada en sala {}".format(data['username'], data['room']))
+    room = data['room']
+    username = data['username']
+    
+    socketio.emit('video_call_started', {
+        'username': username,
+        'room': room
+    }, room=room, include_self=False)
+
+@socketio.on('call_rejected')
+def handle_call_rejected(data):
+    app.logger.info("{} ha rechazado la videollamada en sala {}".format(data['username'], data['room']))
+    room = data['room']
+    username = data['username']
+    
+    socketio.emit('call_rejected', {
+        'username': username,
+        'room': room
+    }, room=room, include_self=False)
+
 
 if __name__ == '__main__':
     #Para que funcione con LOCALHOST
     socketio.run(app, debug=True)
+    CORS(app)
+
     #Para que funcione con HAMACHI
     #socketio.run(app, host='0.0.0.0', port=5000, debug=True)

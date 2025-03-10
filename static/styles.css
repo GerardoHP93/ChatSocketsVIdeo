@@ -801,3 +801,313 @@ label {
         color: var(--accent-color);
 
 }
+
+/* Estilos para la videollamada */
+#video-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.9);
+  z-index: 1000;
+  display: none;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+}
+
+.video-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  width: 100%;
+  height: calc(100% - 70px);
+  gap: 10px;
+}
+
+.local-video-container {
+  position: relative;
+  width: 25%;
+  min-width: 200px;
+  height: auto;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+#local-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 12px;
+  transform: scaleX(-1); /* Espejo para video local */
+}
+
+#local-video-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #333;
+  display: none;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  font-size: 14px;
+}
+
+.remote-videos {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  flex: 1;
+  gap: 10px;
+  max-height: 75%;
+  overflow-y: auto;
+}
+
+.remote-video-container {
+  position: relative;
+  width: 33%;
+  min-width: 250px;
+  max-width: 400px;
+  height: auto;
+  aspect-ratio: 16/9;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.remote-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 12px;
+}
+
+.video-username {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  background-color: rgba(0, 0, 0, 0.5);
+  color: white;
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.call-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #222;
+  padding: 15px;
+  gap: 20px;
+}
+
+.call-btn {
+  padding: 12px 20px;
+  border-radius: 50px;
+  border: none;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.call-btn:hover {
+  transform: scale(1.05);
+}
+
+.end-call-btn {
+  background-color: #e74c3c;
+  color: white;
+}
+
+.mute-btn, .video-btn {
+  background-color: #34495e;
+  color: white;
+}
+
+/* Estilos para el botón de videollamada en la interfaz principal */
+.video-call-btn {
+  display: flex;
+  align-items: center;
+  background-color: #2ecc71;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  border: none;
+  font-weight: bold;
+  cursor: pointer;
+  margin-left: 10px;
+  transition: all 0.2s ease;
+}
+
+.video-call-btn:hover {
+  background-color: #27ae60;
+  transform: scale(1.05);
+}
+
+.video-call-btn i {
+  margin-right: 8px;
+}
+
+/* Estilos para el modal de confirmación de llamada */
+#call-confirmation {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 1100;
+}
+
+.confirmation-dialog {
+  background-color: white;
+  border-radius: 10px;
+  padding: 20px;
+  text-align: center;
+  max-width: 400px;
+  width: 100%;
+}
+
+.confirmation-title {
+  font-size: 20px;
+  margin-bottom: 10px;
+}
+
+.confirmation-text {
+  margin-bottom: 20px;
+  color: #555;
+}
+
+.confirmation-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.confirm-btn {
+  padding: 10px 20px;
+  border-radius: 5px;
+  border: none;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.confirm-btn.accept {
+  background-color: #2ecc71;
+  color: white;
+}
+
+.confirm-btn.cancel {
+  background-color: #e74c3c;
+  color: white;
+}
+
+/* Estilos para la notificación de llamada entrante */
+#incoming-call {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 1100;
+}
+
+.incoming-call-dialog {
+  background-color: white;
+  border-radius: 10px;
+  padding: 20px;
+  text-align: center;
+  max-width: 400px;
+  width: 100%;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% {
+      box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.7);
+  }
+  70% {
+      box-shadow: 0 0 0 20px rgba(46, 204, 113, 0);
+  }
+  100% {
+      box-shadow: 0 0 0 0 rgba(46, 204, 113, 0);
+  }
+}
+
+.incoming-call-title {
+  font-size: 20px;
+  margin-bottom: 10px;
+}
+
+.incoming-call-text {
+  margin-bottom: 20px;
+  color: #555;
+}
+
+.incoming-call-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+#call-error {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #e74c3c;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 5px;
+  z-index: 1200;
+  display: none;
+}
+
+/* Modo responsivo */
+@media (max-width: 768px) {
+  .local-video-container {
+      width: 40%;
+  }
+  
+  .remote-video-container {
+      width: 45%;
+      min-width: 150px;
+  }
+  
+  .call-controls {
+      flex-wrap: wrap;
+  }
+  
+  .call-btn {
+      padding: 10px 15px;
+      font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .local-video-container {
+      width: 80%;
+  }
+  
+  .remote-video-container {
+      width: 80%;
+  }
+}
