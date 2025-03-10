@@ -88,3 +88,13 @@ def leave_room_db(room_id, username):
         {'_id': {'room_id': ObjectId(room_id), 'username': username}}
     )
     return True
+
+def delete_room_db(room_id):
+    # Eliminar los mensajes de la sala
+    messages_collection.delete_many({'room_id': room_id})
+    
+    # Eliminar todos los miembros de la sala
+    room_members_collection.delete_many({'_id.room_id': ObjectId(room_id)})
+    
+    # Finalmente, eliminar la sala
+    rooms_collection.delete_one({'_id': ObjectId(room_id)})

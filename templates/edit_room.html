@@ -61,6 +61,7 @@
             <!-- Save Changes Button -->
             <div class="button-group">
                 <button onclick="saveChanges()" class="btn">Guardar cambios</button>
+                <button onclick="confirmDeleteRoom()" class="btn btn-danger">Eliminar Sala</button>
                 <a href="{{ url_for('view_room', room_id=room._id) }}" class="btn btn-secondary">Cancelar</a>
             </div>
         </div>
@@ -76,6 +77,20 @@
                 </div>
             </div>
         </div>
+
+        <!-- Room Deletion Confirmation Modal -->
+        <div id="deleteRoomModal" class="modal">
+            <div class="modal-content">
+                <h4>Confirmación de eliminar sala</h4>
+                <p>¿Está seguro de que desea eliminar esta sala? Esta acción no se puede deshacer.</p>
+                <div class="button-group">
+                    <button onclick="deleteRoom()" class="btn btn-danger">Sí, eliminar sala</button>
+                    <button onclick="closeDeleteRoomModal()" class="btn btn-secondary">Cancelar</button>
+                </div>
+            </div>
+        </div>
+
+        
     </div>
 
     <script>
@@ -95,6 +110,32 @@
         function closeModal() {
             document.getElementById('confirmModal').style.display = 'none';
             currentMemberToDelete = null;
+        }
+
+        //Funciones para confirmar el eliminado de sala
+        function confirmDeleteRoom() {
+            document.getElementById('deleteRoomModal').style.display = 'block';
+        }
+
+        function closeDeleteRoomModal() {
+            document.getElementById('deleteRoomModal').style.display = 'none';
+        }
+
+        function deleteRoom() {
+            window.location.href = "{{ url_for('delete_room', room_id=room._id) }}";
+        }
+
+        // Añadir al evento window.onclick existente para cerrar también el modal de eliminación
+        window.onclick = function(event) {
+            const confirmModal = document.getElementById('confirmModal');
+            const deleteRoomModal = document.getElementById('deleteRoomModal');
+            
+            if (event.target == confirmModal) {
+                closeModal();
+            }
+            if (event.target == deleteRoomModal) {
+                closeDeleteRoomModal();
+            }
         }
 
         function deleteMember() {

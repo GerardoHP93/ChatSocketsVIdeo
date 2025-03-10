@@ -8,7 +8,7 @@ from passlib.hash import pbkdf2_sha256  # Cambio aquí
 from flask_cors import CORS
 
 
-from db import get_user, save_user, get_rooms_for_user, get_room, is_room_member, get_room_members, add_room_members, \
+from db import delete_room_db, get_user, save_user, get_rooms_for_user, get_room, is_room_member, get_room_members, add_room_members, \
     remove_room_members, update_room, is_room_admin, save_room, save_message, get_messages, leave_room_db
 
 app = Flask(__name__)
@@ -319,6 +319,32 @@ def handle_video_call_started(data):
         'username': username,
         'room': room
     }, room=room, include_self=False)
+
+@app.route('/rooms/<room_id>/delete')
+@login_required
+def delete_room(room_id):
+    room = get_room(room_id)
+    if room and is_room_admin(room_id, current_user.username):
+        # Obtener todos los miembros de la sala
+        room_members = get_room_members(room_id)
+        member_usernames = [member['_id']['username'] for member in room_members]
+        
+        # Guardar un mensaje de sistema en la sala (para historial)
+        save_message(room_id, f"La sala ha sido eliminada por {current_user.username}", "MENSAJE DEL SISTEMA")
+        
+        # Notificar a todos los miembros sobre la eliminación de la sala
+        socketio.emit('room_deleted', {
+            "room_id": room_id,
+            "room_name": room['name'],
+            "deleted_by": current_user.username
+        }, room=room_id)
+        
+        # Eliminar la sala
+        delete_room_db(room_id)
+        
+        return redirect(url_for('home'))
+    else:
+        return "No tienes permisos para eliminar esta sala o la sala no existe", 403
 
 @socketio.on('call_rejected')
 def handle_call_rejected(data):

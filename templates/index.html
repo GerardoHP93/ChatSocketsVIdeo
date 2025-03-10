@@ -150,7 +150,7 @@
     {% if active_room %}
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
     <script src="{{ url_for('static', filename='webrtc.js') }}"></script>
-    
+
     <script>
         //PARA QUE FUNCIONE CON HAMACHI
         //const socket = io.connect("http://25.65.114.71:5000");
@@ -246,7 +246,28 @@
             newNode.innerHTML = `<div class="message-text"><b>${data.username}</b> ha abandonado la sala</div>`;
             document.getElementById('messages').appendChild(newNode);
         });
+
+        socket.on('room_deleted', function (data) {
+            // Si estamos en la sala que acaba de ser eliminada
+            if (data.room_id === "{{ active_room._id if active_room else '' }}") {
+                // Mostrar una alerta
+                alert(`La sala "${data.room_name}" ha sido eliminada por ${data.deleted_by}`);
+                // Redirigir al usuario a la página principal
+                window.location.href = "/";
+            } else {
+                // Si no estamos en esa sala pero está en nuestra lista, actualizar la página
+                const roomsList = document.querySelectorAll('.room-item');
+                for (let i = 0; i < roomsList.length; i++) {
+                    if (roomsList[i].getAttribute('onclick').includes(data.room_id)) {
+                        window.location.reload();
+                        break;
+                    }
+                }
+            }
+        });
+
     </script>
+    
     {% endif %}
 </body>
 </html>
